@@ -60,7 +60,7 @@ qx.Class.define('cv.io.Client', {
     }
 
     if (backendName && backendName !== 'default') {
-      if (qx.lang.Type.isObject(backendName)) {
+      if (typeof backendName === 'object') {
         // override default settings
         this.setBackend(backendName);
       } else if (cv.io.Client.backends[backendName]) {
@@ -129,6 +129,7 @@ qx.Class.define('cv.io.Client', {
         maxDataAge: 3200 * 1000, // in milliseconds - reload all data when last successful
         // read is older (should be faster than the index overflow at max data rate,
         // i.e. 2^16 @ 20 tps for KNX TP)
+        maxRetries: 3, // amount of connection retries for temporary server failures
         hooks: {}
       },
       'openhab': {
@@ -248,13 +249,13 @@ qx.Class.define('cv.io.Client', {
 
     setBackend: function(newBackend) {
       // override default settings
-      var backend = qx.lang.Object.mergeWith(qx.lang.Object.clone(cv.io.Client.backends['default']), newBackend);
+      var backend = Object.assign({}, cv.io.Client.backends['default'], newBackend);
       this.backend = backend;
       if (backend.transport === 'sse' && backend.transportFallback) {
         if (window.EventSource === undefined) {
           // browser does not support EventSource object => use fallback
           // transport + settings
-          qx.lang.Object.mergeWith(backend, backend.transportFallback);
+          Object.assign(backend, backend.transportFallback);
         }
       }
       // add trailing slash to baseURL if not set
@@ -402,7 +403,7 @@ qx.Class.define('cv.io.Client', {
         if (!ev) { return null; }
         var json = ev.getTarget().getResponse();
         if (!json) { return null; }
-        if (qx.lang.Type.isString(json)) {
+        if (typeof json === 'string') {
           json = cv.io.parser.Json.parse(json);
         }
         return json;
@@ -428,7 +429,7 @@ qx.Class.define('cv.io.Client', {
         Object.getOwnPropertyNames(data).forEach(function (key) {
           if (key === "i" || key === "t") {
             prefix += key + "=" + data[key] + "&";
-          } else if (qx.lang.Type.isArray(data[key])) {
+          } else if (Array.isArray(data[key])) {
             suffix += key + "=" + data[key].join("&" + key + "=") + "&";
           } else {
             suffix += key + "=" + data[key] + "&";
@@ -491,12 +492,13 @@ qx.Class.define('cv.io.Client', {
           }
           if (options.listeners) {
             Object.getOwnPropertyNames(options.listeners).forEach(function(eventName) {
-              ajaxRequest.addListener(eventName, options.listeners[eventName], context);
+              var qxEventName = 'error' !== eventName ? eventName : 'statusError';
+              ajaxRequest.addListener(qxEventName, options.listeners[eventName], context);
             });
             delete options.listeners;
           }
         }
-        ajaxRequest.set(qx.lang.Object.mergeWith({
+        ajaxRequest.set(Object.assign({
           accept: "application/json"
         }, options || {}));
         if (callback) {
@@ -514,6 +516,9 @@ qx.Class.define('cv.io.Client', {
      */
     _onError: function(ev) {
       var req = ev.getTarget();
+      if(req.serverErrorHandled) {
+        return; // ignore error when already handled
+      }
       this.__lastError = {
         code: req.getStatus(),
         text: req.getStatusText(),
@@ -553,7 +558,7 @@ qx.Class.define('cv.io.Client', {
       var json = this.getResponse(args);
       // read backend configuration if send by backend
       if (json.c) {
-        this.setBackend(qx.lang.Object.mergeWith(this.getBackend(), json.c));
+        this.setBackend(Object.assign(this.getBackend(), json.c));
       }
       this.session = json.s || "SESSION";
       this.setServer(this.getResponseHeader(args, "Server"));

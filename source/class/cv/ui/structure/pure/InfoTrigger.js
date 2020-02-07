@@ -46,7 +46,7 @@ qx.Class.define('cv.ui.structure.pure.InfoTrigger', {
     },
     'shortDownValue': {
       check: "Number",
-      init: 0
+      nullable: true
     },
     'downLabel': {
       check: "String",
@@ -58,7 +58,7 @@ qx.Class.define('cv.ui.structure.pure.InfoTrigger', {
     },
     'shortUpValue': {
       check: "Number",
-      init: 0
+      nullable: true
     },
     'upLabel': {
       check: "String",
@@ -137,7 +137,7 @@ qx.Class.define('cv.ui.structure.pure.InfoTrigger', {
     },
 
     getActors: function(){
-      return qx.bom.Selector.query(".actor.uplabel, .actor.downlabel", this.getDomElement());
+      return this.getDomElement().querySelectorAll(".actor.uplabel, .actor.downlabel");
     },
 
     // overridden
@@ -149,9 +149,9 @@ qx.Class.define('cv.ui.structure.pure.InfoTrigger', {
     },
 
     __findActor: function (element) {
-      while (!qx.bom.element.Class.has(element, 'actor')) {
+      while (!element.classList.contains('actor')) {
         element = element.parentNode;
-        if (qx.bom.element.Class.has(element, 'widget')) {
+        if (element.classList.contains('widget')) {
           // thats too far
           return null;
         }
@@ -160,16 +160,16 @@ qx.Class.define('cv.ui.structure.pure.InfoTrigger', {
     },
 
     _onLongTap: function(event) {
-      this.__action(false, qx.bom.element.Class.has(this.__findActor(event.getCurrentTarget()), 'downlabel'));
+      this.__action(false, this.__findActor(event.getCurrentTarget()).classList.contains('downlabel'));
     },
 
     _action: function(event) {
-      this.__action(true, qx.bom.element.Class.has(this.__findActor(event.getCurrentTarget()), 'downlabel'));
+      this.__action(true, this.__findActor(event.getCurrentTarget()).classList.contains('downlabel'));
     },
 
     __action: function (isShort, isDown) {
       var value;
-      if (isShort) {
+      if (isShort && this.getShortDownValue() !== null && this.getShortUpValue() !== null) {
         value = isDown ? this.getShortDownValue() : this.getShortUpValue();
       } else {
         value = isDown ? this.getDownValue() : this.getUpValue();
@@ -192,15 +192,15 @@ qx.Class.define('cv.ui.structure.pure.InfoTrigger', {
     },
 
     getDownActor: function() {
-      return qx.bom.Selector.query(".actor.downlabel", this.getDomElement())[0];
+      return this.getDomElement().querySelector(".actor.downlabel");
     },
 
     getUpActor: function() {
-      return qx.bom.Selector.query(".actor.uplabel", this.getDomElement())[0];
+      return this.getDomElement().querySelector(".actor.uplabel");
     },
 
     getInfoActor: function() {
-      return qx.bom.Selector.query(".actor.switchInvisible", this.getDomElement())[0];
+      return this.getDomElement().querySelector(".actor.switchInvisible");
     }
   },
 

@@ -101,7 +101,7 @@ var jOWM = jOWM || {};
             $('<ul>')
                     .addClass('detailed')
                     .addClass('clearfix')
-                    .appendTo($(e));
+                    .appendTo($(e).children(":first"));
         }
 
         if (options.forecast24hItems > 0) {
@@ -110,7 +110,7 @@ var jOWM = jOWM || {};
                 $('<ul>')
                         .addClass('forecast')
                         .addClass('clearfix')
-                        .appendTo($(e));
+                        .appendTo($(e).children(":first"));
             }
         }
         if (options.forecastDailyItems > 0) {
@@ -119,7 +119,7 @@ var jOWM = jOWM || {};
                 $('<ul>')
                         .addClass('forecastDaily')
                         .addClass('clearfix')
-                        .appendTo($(e));
+                        .appendTo($(e).children(":first"));
             }
         }
 
@@ -134,12 +134,12 @@ var jOWM = jOWM || {};
                 options.id = data.id;
                 // Description text
                 if (options.description === '') {
-                    $('div.openweathermap_value').append("<p>" + options.cityname + "</p>");
+                    $('div.openweathermap_value').html("<p>" + options.cityname + "</p>");
                 } else if (options.description === 'false') {
                     // no text
                     $('div.openweathermap_value').parent().css('display', 'none');
                 } else {
-                    $('div.openweathermap_value').append("<p>" + options.description + "</p>");
+                    $('div.openweathermap_value').html("<p>" + options.description + "</p>");
                 }
                 // Fetch data for detailed items.
                 _processDataDetailed(e, currentURL, options);
@@ -202,7 +202,7 @@ var jOWM = jOWM || {};
         $('ul.forecast', $(e)).html('');
         // Insert line
         $('ul.forecast', $(e)).append('<div class="separationLine clearfix">');
-        if (options.forecastItems === 0) {
+        if (options.forecast24hItems === 0) {
             // Forecast is disabled.
             return;
         }
@@ -242,7 +242,7 @@ var jOWM = jOWM || {};
         $('ul.forecastDaily', $(e)).html('');
         // Insert Line
         $('ul.forecastDaily', $(e)).append('<div class="separationLine clearfix">');
-        if (options.forecastItems === 0) {
+        if (options.forecastDailyItems === 0) {
             // Forecast is disabled.
             return;
         }
@@ -291,12 +291,12 @@ var jOWM = jOWM || {};
         //time sunrise
         var d = new Date(options.sunrise * 1000);
         var output = '<li class="sunrise-sunset"><div class="weather-forecast weather-sunrise clearfix" style="float: left;">';
-        output += '<div class="weather-icon" </div>';
+        output += '<div class="weather-icon"></div>';
         output += '<div class="sunrise-sunset">' + d.strftime('%H:%M') + '</div> </div>';
         //time sunset
         d = new Date(options.sunset * 1000);
         output += '<div class="weather-forecast weather-sunset clearfix" style="float: left;">';
-        output += '<div class="weather-icon" </div>';
+        output += '<div class="weather-icon"></div>';
         output += '<div class="sunrise-sunset">' + d.strftime('%H:%M') + '</div> </div></li>';
         return output;
     }
@@ -319,7 +319,7 @@ var jOWM = jOWM || {};
 
             var d = new Date(dataItems[index].dt * 1000);
             d.locale = options.lang;
-            if (d.getHours() === 1) {
+            if (d.getHours() < 3) {
                 minTemp = dataItems[index].main.temp_min;
                 maxTemp = dataItems[index].main.temp_max;
                 newDay = true;
@@ -332,11 +332,11 @@ var jOWM = jOWM || {};
                     maxTemp = dataItems[index].main.temp_max;
                 }
                 //use icon from midday
-                if (d.getHours() === 13) {
+                if ((d.getHours() > 10) && (d.getHours() < 14)) {
                     weather = dataItems[index].weather;
                 }
                 //at the end of the day do your calulations
-                if (d.getHours() === 22) {
+                if (d.getHours() >= 21) {
                     arrDailyWeather.push({day: d.strftime('%a'), min_temp: minTemp, max_temp: maxTemp, weather: weather});
                     newDay = false;
                 }
@@ -382,8 +382,8 @@ var jOWM = jOWM || {};
        req.addListener("success", function (ev) {
            var req = ev.getTarget();
            var data = req.getResponse();
-           if (qx.lang.Type.isString(data)) {
-               data = qx.lang.Json.parse(data);
+           if (typeof data === 'string') {
+               data = JSON.parse(data);
            }
            callback(data);
        }, this);
